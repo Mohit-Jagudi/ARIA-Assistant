@@ -306,7 +306,7 @@ const API = 'http://localhost:8000';
 let currentStaff = null;
 let currentCrisisId = null;
 let pollInterval = null;
-
+let hasCompletedTask = false;
 const icons = {FIRE:'🔥',MEDICAL:'🏥',SECURITY:'🔒',FLOOD:'🌊',POWER_OUTAGE:'⚡',EARTHQUAKE:'🌍',CROWD_PANIC:'👥',OTHER:'⚠️'};
 
 function fillDemo() {
@@ -345,11 +345,11 @@ function logout() {
 
 async function pollCrises() {
   if (!currentStaff) return;
+  if (hasCompletedTask) return;  // ← STOP polling after task done
   try {
     const res = await fetch(`${API}/crisis/active`);
     const crises = await res.json();
 
-    // Check if this staff member has an assignment
     let myAssignment = null;
     let myCrisisId = null;
 
@@ -394,17 +394,39 @@ function hideCrisisTask() {
 async function updateTaskStatus(status) {
   if (!currentCrisisId || !currentStaff) return;
 
-  const labels = { on_my_way:'On my way!', reached:'Reached location!', completed:'Task completed!' };
+  const labels = { 
+    on_my_way: 'On my way!', 
+    reached: 'Reached location!', 
+    completed: 'Task completed!' 
+  };
+
   showToast(`✅ Status updated: ${labels[status]}`, 'success');
 
   try {
     await fetch(`${API}/staff/task-status`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ staff_id: currentStaff.id, crisis_id: currentCrisisId, status })
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ 
+        staff_id: currentStaff.id, 
+        crisis_id: currentCrisisId, 
+        status 
+      })
     });
-    if (status === 'completed') { hideCrisisTask(); currentCrisisId = null; }
   } catch(e) {}
+
+  // Always update UI immediately — don't wait for server
+  if (status === 'completed') {
+    hideCrisisTask();
+    currentCrisisId = null;
+    hasCompletedTask = true;
+    showToast('✅ Task marked complete. You are now available.', 'success');
+  } else if (status === 'on_my_way') {
+    document.getElementById('myStatus').textContent = 'ON MY WAY';
+    document.getElementById('myStatus').style.color = 'var(--yellow)';
+  } else if (status === 'reached') {
+    document.getElementById('myStatus').textContent = 'ON SCENE';
+    document.getElementById('myStatus').style.color = 'var(--yellow)';
+  }
 }
 
 async function reportIncident() {
