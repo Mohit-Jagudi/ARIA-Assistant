@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Guest Safety</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --red: #ff2d55;
+    --red-dim: rgba(255,45,85,0.15);
+    --yellow: #ffd60a;
+    --green: #30d158;
+    --green-dim: rgba(48,209,88,0.12);
+    --text: #f0f0f5;
+    --text-dim: #8888aa;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-mono); min-height:100vh; display:flex; flex-direction:column; }
+
+  /* WELCOME SCREEN */
+  .welcome-screen { flex:1; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .welcome-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:20px;
+    padding:40px 32px; width:100%; max-width:400px; text-align:center;
+  }
+  .hotel-logo { font-size:48px; margin-bottom:16px; }
+  .welcome-title { font-family:var(--font-head); font-size:26px; font-weight:800; margin-bottom:6px; }
+  .welcome-sub { font-size:11px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:28px; }
+  .aria-badge {
+    display:inline-flex; align-items:center; gap:8px; padding:8px 16px;
+    background:var(--green-dim); border:1px solid var(--green); border-radius:100px;
+    font-size:12px; color:var(--green); margin-bottom:28px;
+  }
+  .aria-badge .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  .input-label { font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; text-align:left; margin-bottom:6px; display:block; }
+  .guest-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:13px; color:var(--text); font-family:var(--font-mono); font-size:14px;
+    margin-bottom:14px; transition:border-color 0.2s;
+  }
+  .guest-input:focus { outline:none; border-color:var(--green); }
+  .guest-input::placeholder { color:var(--text-dim); }
+
+  .checkin-btn {
+    width:100%; padding:15px; border-radius:10px; border:none; background:var(--green);
+    color:var(--bg); font-family:var(--font-head); font-size:15px; font-weight:800;
+    cursor:pointer; letter-spacing:1px; text-transform:uppercase; transition:all 0.2s; margin-bottom:16px;
+  }
+  .checkin-btn:hover { opacity:0.9; transform:translateY(-1px); }
+
+  .safety-note {
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:16px; text-align:left; font-size:12px; color:var(--text-dim); line-height:1.6;
+  }
+  .safety-note strong { color:var(--text); display:block; margin-bottom:6px; font-family:var(--font-head); }
+
+  .demo-hint { margin-top:14px; font-size:11px; color:var(--text-dim); }
+  .demo-hint span { color:var(--yellow); cursor:pointer; text-decoration:underline; }
+
+  /* GUEST PORTAL */
+  .guest-portal { flex:1; display:none; flex-direction:column; }
+
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  .header-info .room-number { font-family:var(--font-head); font-size:18px; font-weight:800; }
+  .header-info .guest-name { font-size:11px; color:var(--text-dim); }
+  .protected-badge {
+    display:flex; align-items:center; gap:6px; font-size:11px;
+    color:var(--green); padding:5px 12px; background:var(--green-dim);
+    border:1px solid rgba(48,209,88,0.3); border-radius:100px;
+  }
+
+  .portal-content { flex:1; padding:20px; display:flex; flex-direction:column; gap:16px; max-width:480px; margin:0 auto; width:100%; }
+
+  /* NORMAL STATE */
+  .safe-state {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:36px; text-align:center;
+  }
+  .safe-icon { font-size:56px; margin-bottom:16px; }
+  .safe-title { font-family:var(--font-head); font-size:22px; font-weight:800; color:var(--green); margin-bottom:8px; }
+  .safe-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
+
+  /* EMERGENCY STATE — FULL SCREEN RED */
+  .emergency-state {
+    display:none; background:var(--red-dim); border:2px solid var(--red);
+    border-radius:16px; padding:28px; animation:emergency-pulse 1.5s infinite;
+  }
+  @keyframes emergency-pulse { 0%,100%{border-color:var(--red);box-shadow:0 0 0 0 rgba(255,45,85,0.3)}50%{border-color:rgba(255,45,85,0.6);box-shadow:0 0 20px rgba(255,45,85,0.2)} }
+
+  .emergency-header { text-align:center; margin-bottom:24px; }
+  .emergency-emoji { font-size:52px; margin-bottom:12px; display:block; animation:shake 0.5s infinite; }
+  @keyframes shake { 0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)} }
+  .emergency-title { font-family:var(--font-head); font-size:28px; font-weight:800; color:var(--red); margin-bottom:4px; }
+  .emergency-sub { font-size:12px; color:var(--text-dim); }
+
+  .instructions-box {
+    background:var(--bg); border:1px solid rgba(255,45,85,0.3); border-radius:12px;
+    padding:20px; margin-bottom:20px;
+  }
+  .instructions-label { font-size:10px; color:var(--red); letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; font-family:var(--font-head); }
+  .instruction-step {
+    display:flex; align-items:flex-start; gap:12px; margin-bottom:12px; font-size:14px; line-height:1.5;
+  }
+  .instruction-step:last-child { margin-bottom:0; }
+  .step-num {
+    width:24px; height:24px; border-radius:50%; background:var(--red); color:white;
+    display:flex; align-items:center; justify-content:center; font-size:11px;
+    font-weight:700; flex-shrink:0; margin-top:1px;
+  }
+
+  .response-btns { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .safe-btn {
+    padding:18px; border-radius:12px; border:none; background:var(--green);
+    color:var(--bg); font-family:var(--font-head); font-size:16px; font-weight:800;
+    cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column;
+    align-items:center; gap:4px;
+  }
+  .safe-btn:hover { opacity:0.9; transform:translateY(-1px); }
+  .safe-btn .btn-sub { font-size:10px; font-weight:400; opacity:0.8; }
+  .help-btn {
+    padding:18px; border-radius:12px; border:2px solid var(--red);
+    background:var(--red-dim); color:var(--red); font-family:var(--font-head);
+    font-size:16px; font-weight:800; cursor:pointer; transition:all 0.2s;
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+  }
+  .help-btn:hover { background:var(--red); color:white; }
+  .help-btn .btn-sub { font-size:10px; font-weight:400; }
+
+  /* RESPONDED STATE */
+  .responded-state {
+    display:none; background:var(--surface); border:1px solid var(--border);
+    border-radius:16px; padding:36px; text-align:center;
+  }
+  .responded-icon { font-size:52px; margin-bottom:16px; }
+  .responded-title { font-family:var(--font-head); font-size:22px; font-weight:800; margin-bottom:8px; }
+  .responded-sub { font-size:12px; color:var(--text-dim); line-height:1.6; }
+
+  /* REPORT EMERGENCY */
+  .report-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .card-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--text-dim); margin-bottom:14px; font-family:var(--font-head); }
+  .report-textarea {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:12px; color:var(--text); font-family:var(--font-mono); font-size:13px;
+    resize:none; margin-bottom:12px; transition:border-color 0.2s;
+  }
+  .report-textarea:focus { outline:none; border-color:var(--red); }
+  .report-textarea::placeholder { color:var(--text-dim); }
+  .report-btn-guest {
+    width:100%; padding:12px; border-radius:8px; border:1px solid var(--red);
+    background:var(--red-dim); color:var(--red); font-family:var(--font-mono);
+    font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s;
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .report-btn-guest:hover { background:var(--red); color:white; }
+
+  /* INFO CARD */
+  .info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .info-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:12px; }
+  .info-row:last-child { border-bottom:none; }
+  .info-key { color:var(--text-dim); }
+  .info-val { color:var(--text); font-weight:700; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; padding:14px 20px; border-radius:10px; font-size:12px; font-weight:700; z-index:9999; animation:toast-in 0.3s ease; border:1px solid; max-width:340px; }
+  .toast.success { background:var(--green-dim); border-color:var(--green); color:var(--green); }
+  .toast.error { background:var(--red-dim); border-color:var(--red); color:var(--red); }
+  .toast.info { background:rgba(10,132,255,0.12); border-color:#0a84ff; color:#0a84ff; }
+  @keyframes toast-in { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- WELCOME / CHECK-IN SCREEN -->
+<div class="welcome-screen" id="welcomeScreen">
+  <div class="welcome-card">
+    <div class="hotel-logo">🏨</div>
+    <div class="welcome-title">Hotel Grand</div>
+    <div class="welcome-sub">Ludhiana, Punjab</div>
+
+    <div class="aria-badge">
+      <div class="dot"></div>
+      Protected by ARIA Emergency System
+    </div>
+
+    <label class="input-label">Your Room Number</label>
+    <input class="guest-input" id="roomInput" type="text" placeholder="e.g. room_412" />
+
+    <label class="input-label">Your Name</label>
+    <input class="guest-input" id="guestNameInput" type="text" placeholder="e.g. John Smith" />
+
+    <label class="input-label">Your Phone</label>
+    <input class="guest-input" id="guestPhoneInput" type="tel" placeholder="+91XXXXXXXXXX" />
+
+    <label class="input-label">Your Language</label>
+    <select class="guest-input" id="guestLangInput">
+      <option value="en">English</option>
+      <option value="hi">Hindi — हिंदी</option>
+      <option value="ja">Japanese — 日本語</option>
+      <option value="ar">Arabic — العربية</option>
+      <option value="fr">French — Français</option>
+      <option value="es">Spanish — Español</option>
+      <option value="de">German — Deutsch</option>
+      <option value="zh">Chinese — 中文</option>
+      <option value="ru">Russian — Русский</option>
+    </select>
+
+    <button class="checkin-btn" onclick="checkIn()">🏨 CHECK IN TO ARIA</button>
+
+    <div class="safety-note">
+      <strong>🛡️ How ARIA Protects You</strong>
+      In any emergency, you will receive an instant alert in your language with clear instructions. Simply follow the steps shown on this screen. Your safety is our priority.
+    </div>
+
+    <div class="demo-hint">Demo: click <span onclick="fillDemo()">auto-fill</span> to use test data</div>
+  </div>
+</div>
+
+<!-- GUEST PORTAL -->
+<div class="guest-portal" id="guestPortal">
+  <header>
+    <div class="header-info">
+      <div class="room-number" id="headerRoom">Room 412</div>
+      <div class="guest-name" id="headerName">Guest</div>
+    </div>
+    <div class="protected-badge">
+      <span>🛡️</span> ARIA Protected
+    </div>
+  </header>
+
+  <div class="portal-content">
+
+    <!-- SAFE STATE (default) -->
+    <div class="safe-state" id="safeState">
+      <div class="safe-icon">🛡️</div>
+      <div class="safe-title">You Are Safe</div>
+      <div class="safe-sub">
+        No active emergencies in your zone.<br>
+        ARIA is monitoring 24/7.<br><br>
+        <strong style="color:var(--text)">Keep your phone nearby.</strong><br>
+        In an emergency, this screen will update automatically.
+      </div>
+    </div>
+
+    <!-- EMERGENCY STATE -->
+    <div class="emergency-state" id="emergencyState">
+      <div class="emergency-header">
+        <span class="emergency-emoji" id="emergencyEmoji">🔥</span>
+        <div class="emergency-title" id="emergencyTitle">FIRE EMERGENCY</div>
+        <div class="emergency-sub" id="emergencyLocation">Floor 2 — Kitchen</div>
+      </div>
+
+      <div class="instructions-box">
+        <div class="instructions-label">⚡ Do This Right Now</div>
+        <div class="instruction-step">
+          <div class="step-num">1</div>
+          <div id="step1">Leave your room immediately. Take your key.</div>
+        </div>
+        <div class="instruction-step">
+          <div class="step-num">2</div>
+          <div id="step2">Do NOT use the elevator. Use the stairwell.</div>
+        </div>
+        <div class="instruction-step">
+          <div class="step-num">3</div>
+          <div id="step3">Go to the ground floor assembly point.</div>
+        </div>
+        <div class="instruction-step">
+          <div class="step-num">4</div>
+          <div id="step4">Staff are on their way to assist you.</div>
+        </div>
+      </div>
+
+      <div class="response-btns">
+        <button class="safe-btn" onclick="respondSafe()">
+          ✅ I AM SAFE
+          <span class="btn-sub">Tap to confirm</span>
+        </button>
+        <button class="help-btn" onclick="respondHelp()">
+          🆘 NEED HELP
+          <span class="btn-sub">Staff coming now</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- RESPONDED STATE -->
+    <div class="responded-state" id="respondedState">
+      <div class="responded-icon" id="respondedIcon">✅</div>
+      <div class="responded-title" id="respondedTitle">You Are Marked Safe</div>
+      <div class="responded-sub" id="respondedSub">
+        Your status has been sent to ARIA Command Center.<br>
+        Continue following evacuation instructions.<br>
+        Staff are coordinating your safety.
+      </div>
+    </div>
+
+    <!-- HOTEL INFO -->
+    <div class="info-card">
+      <div class="card-title">📋 Your Stay Info</div>
+      <div class="info-row"><span class="info-key">Room</span><span class="info-val" id="infoRoom">—</span></div>
+      <div class="info-row"><span class="info-key">Hotel</span><span class="info-val">Hotel Grand</span></div>
+      <div class="info-row"><span class="info-key">Emergency</span><span class="info-val">112</span></div>
+      <div class="info-row"><span class="info-key">Reception</span><span class="info-val">Floor 1</span></div>
+      <div class="info-row"><span class="info-key">Assembly Point</span><span class="info-val">Main Gate</span></div>
+      <div class="info-row"><span class="info-key">Stairwell A</span><span class="info-val">East Wing</span></div>
+      <div class="info-row"><span class="info-key">Stairwell B</span><span class="info-val">West Wing</span></div>
+    </div>
+
+    <!-- REPORT EMERGENCY -->
+    <div class="report-card">
+      <div class="card-title">🚨 Report Emergency</div>
+      <textarea class="report-textarea" id="guestReport" rows="3" placeholder="Describe what you see... e.g. 'I smell smoke on Floor 4'"></textarea>
+      <button class="report-btn-guest" onclick="guestReport()">⚠️ SEND REPORT TO ARIA</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let guestData = null;
+let activeCrisisId = null;
+let hasResponded = false;
+let pollInterval = null;
+
+const icons = {FIRE:'🔥',MEDICAL:'🏥',SECURITY:'🔒',FLOOD:'🌊',POWER_OUTAGE:'⚡',EARTHQUAKE:'🌍',CROWD_PANIC:'👥',OTHER:'⚠️'};
+
+function fillDemo() {
+  document.getElementById('roomInput').value = 'room_412';
+  document.getElementById('guestNameInput').value = 'John Smith';
+  document.getElementById('guestPhoneInput').value = '+91XXXXXXXXXX';
+  document.getElementById('guestLangInput').value = 'en';
+}
+
+async function checkIn() {
+  const room = document.getElementById('roomInput').value.trim();
+  const name = document.getElementById('guestNameInput').value.trim();
+  const phone = document.getElementById('guestPhoneInput').value.trim();
+  const language = document.getElementById('guestLangInput').value;
+
+  if (!room || !name || !phone) { showToast('Please fill all fields', 'error'); return; }
+
+  guestData = { room, name, phone, language, floor: parseInt(room.replace(/\D/g,'').substring(0,1)) || 4 };
+
+  try {
+    await fetch(`${API}/guest/register`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ room, name, phone, language, floor: guestData.floor })
+    });
+  } catch(e) {}
+
+  // Show portal
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('guestPortal').style.display = 'flex';
+  document.getElementById('headerRoom').textContent = `Room ${room.replace('room_','')}`;
+  document.getElementById('headerName').textContent = name;
+  document.getElementById('infoRoom').textContent = room.replace('room_','');
+
+  showToast(`Welcome ${name}! ARIA is now protecting you. 🛡️`, 'info');
+
+  // Start polling for crises
+  pollInterval = setInterval(pollCrises, 4000);
+  pollCrises();
+}
+
+async function pollCrises() {
+  if (!guestData || hasResponded) return;
+  try {
+    const res = await fetch(`${API}/crisis/active`);
+    const crises = await res.json();
+    const list = Object.entries(crises);
+
+    if (list.length === 0) {
+      showSafeState();
+      return;
+    }
+
+    // Check if this guest's floor is affected
+    const myFloor = guestData.floor;
+    let relevantCrisis = null;
+    let relevantId = null;
+
+    list.forEach(([id, crisis]) => {
+      const floors = crisis.affected_floors || [];
+      if (floors.includes(myFloor) || floors.includes(String(myFloor))) {
+        relevantCrisis = crisis;
+        relevantId = id;
+      }
+    });
+
+    if (relevantCrisis) {
+      activeCrisisId = relevantId;
+      showEmergencyState(relevantCrisis);
+    } else {
+      showSafeState();
+    }
+  } catch(e) {}
+}
+
+function showSafeState() {
+  document.getElementById('safeState').style.display = 'block';
+  document.getElementById('emergencyState').style.display = 'none';
+  document.getElementById('respondedState').style.display = 'none';
+}
+
+function showEmergencyState(crisis) {
+  document.getElementById('safeState').style.display = 'none';
+  document.getElementById('emergencyState').style.display = 'block';
+  document.getElementById('respondedState').style.display = 'none';
+
+  document.getElementById('emergencyEmoji').textContent = icons[crisis.crisis_type] || '⚠️';
+  document.getElementById('emergencyTitle').textContent = `${crisis.crisis_type} EMERGENCY`;
+  document.getElementById('emergencyLocation').textContent = `📍 ${crisis.location}`;
+
+  // Set instructions based on crisis type
+  const steps = getSteps(crisis.crisis_type);
+  document.getElementById('step1').textContent = steps[0];
+  document.getElementById('step2').textContent = steps[1];
+  document.getElementById('step3').textContent = steps[2];
+  document.getElementById('step4').textContent = steps[3];
+}
+
+function getSteps(type) {
+  const steps = {
+    FIRE: [
+      'Leave your room immediately. Do NOT take valuables.',
+      'Do NOT use the elevator. Use Stairwell B on your left.',
+      'Go to the ground floor main entrance.',
+      'Staff are guiding guests to safety. Follow their instructions.'
+    ],
+    MEDICAL: [
+      'Stay in your room and lock the door.',
+      'Do not panic. Medical staff are responding.',
+      'If you need help, press the NEED HELP button below.',
+      'ARIA has alerted trained medical staff to your floor.'
+    ],
+    SECURITY: [
+      'Stay in your room immediately. Lock the door.',
+      'Do not open the door for anyone until cleared by ARIA.',
+      'Move away from windows and stay low.',
+      'Police have been alerted. Security is responding.'
+    ],
+    EARTHQUAKE: [
+      'Drop to the ground immediately.',
+      'Take cover under a strong table or desk.',
+      'Hold on until shaking stops.',
+      'After shaking stops, evacuate via stairwell. Do NOT use elevator.'
+    ],
+    FLOOD: [
+      'Move to higher floors immediately.',
+      'Do not use the elevator.',
+      'Use Stairwell A or B to go up.',
+      'Staff are guiding guests. Follow their instructions.'
+    ]
+  };
+  return steps[type] || steps.FIRE;
+}
+
+async function respondSafe() {
+  if (!activeCrisisId || !guestData) return;
+  hasResponded = true;
+
+  try {
+    await fetch(`${API}/guest/safety-response`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ room: guestData.room, crisis_id: activeCrisisId, status: 'safe' })
+    });
+  } catch(e) {}
+
+  document.getElementById('emergencyState').style.display = 'none';
+  document.getElementById('respondedState').style.display = 'block';
+  document.getElementById('respondedIcon').textContent = '✅';
+  document.getElementById('respondedTitle').textContent = 'You Are Marked Safe';
+  document.getElementById('respondedSub').innerHTML = 'Your safety status has been sent to ARIA Command Center.<br>Continue following evacuation instructions.<br><br>Staff are coordinating your safety.';
+  showToast('✅ Marked as safe. ARIA Command Center notified.', 'success');
+}
+
+async function respondHelp() {
+  if (!activeCrisisId || !guestData) return;
+  hasResponded = true;
+
+  try {
+    await fetch(`${API}/guest/safety-response`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ room: guestData.room, crisis_id: activeCrisisId, status: 'needs_help' })
+    });
+  } catch(e) {}
+
+  document.getElementById('emergencyState').style.display = 'none';
+  document.getElementById('respondedState').style.display = 'block';
+  document.getElementById('respondedIcon').textContent = '🆘';
+  document.getElementById('respondedTitle').textContent = 'Help Is On The Way';
+  document.getElementById('respondedSub').innerHTML = 'Staff have been dispatched to your room immediately.<br>Stay where you are and keep this screen open.<br><br><strong style="color:var(--red)">Do NOT leave your room until staff arrive.</strong>';
+  showToast('🆘 Help requested! Staff dispatched to your room.', 'error');
+}
+
+async function guestReport() {
+  const report = document.getElementById('guestReport').value.trim();
+  if (!report) { showToast('Please describe what you see', 'error'); return; }
+
+  try {
+    const res = await fetch(`${API}/crisis/report`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        report,
+        reported_by: `guest_${guestData?.room || 'unknown'}`,
+        reporter_location: guestData?.room || 'Unknown room'
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('✅ Report sent to ARIA. Staff are responding.', 'success');
+      document.getElementById('guestReport').value = '';
+    } else {
+      showToast('Error sending report', 'error');
+    }
+  } catch(e) { showToast('Cannot connect to ARIA. Try again.', 'error'); }
+}
+
+function showToast(msg, type='info') {
+  document.querySelector('.toast')?.remove();
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+</script>
+</body>
+</html>

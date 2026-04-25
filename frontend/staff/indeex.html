@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Staff Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --red: #ff2d55;
+    --red-dim: rgba(255,45,85,0.15);
+    --yellow: #ffd60a;
+    --yellow-dim: rgba(255,214,10,0.12);
+    --green: #30d158;
+    --green-dim: rgba(48,209,88,0.12);
+    --text: #f0f0f5;
+    --text-dim: #8888aa;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:var(--font-mono); min-height:100vh; display:flex; flex-direction:column; }
+
+  /* LOGIN SCREEN */
+  .login-screen {
+    flex:1; display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:40px; width:100%; max-width:380px; text-align:center;
+  }
+  .login-logo {
+    width:64px; height:64px; background:var(--red); border-radius:16px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-head); font-weight:800; font-size:28px;
+    margin:0 auto 20px; animation:pulse-red 2s infinite;
+  }
+  @keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(255,45,85,0.4)}50%{box-shadow:0 0 0 12px rgba(255,45,85,0)} }
+  .login-title { font-family:var(--font-head); font-size:28px; font-weight:800; margin-bottom:4px; }
+  .login-sub { font-size:11px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:32px; }
+  .login-label { font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; text-align:left; margin-bottom:6px; display:block; }
+  .login-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:12px; color:var(--text); font-family:var(--font-mono); font-size:14px;
+    margin-bottom:16px; transition:border-color 0.2s;
+  }
+  .login-input:focus { outline:none; border-color:var(--red); }
+  .login-input::placeholder { color:var(--text-dim); }
+  .login-btn {
+    width:100%; padding:14px; border-radius:8px; border:none; background:var(--red);
+    color:white; font-family:var(--font-head); font-size:15px; font-weight:700;
+    cursor:pointer; letter-spacing:1px; text-transform:uppercase; transition:all 0.2s;
+  }
+  .login-btn:hover { background:#ff1744; transform:translateY(-1px); }
+  .demo-hint { margin-top:16px; font-size:11px; color:var(--text-dim); }
+  .demo-hint span { color:var(--yellow); cursor:pointer; }
+
+  /* MAIN PORTAL */
+  .portal { flex:1; display:none; flex-direction:column; }
+
+  /* HEADER */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 24px; border-bottom:1px solid var(--border); background:var(--surface);
+  }
+  .header-left { display:flex; align-items:center; gap:12px; }
+  .logo-badge {
+    width:32px; height:32px; background:var(--red); border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-head); font-weight:800; font-size:13px;
+  }
+  .logo-text { font-family:var(--font-head); font-weight:800; font-size:16px; }
+  .staff-pill {
+    display:flex; align-items:center; gap:8px; padding:5px 12px;
+    background:var(--surface2); border:1px solid var(--border); border-radius:100px;
+    font-size:11px;
+  }
+  .staff-pill .dot { width:6px; height:6px; border-radius:50%; background:var(--green); animation:blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .logout-btn {
+    padding:6px 14px; border-radius:6px; border:1px solid var(--border);
+    background:transparent; color:var(--text-dim); font-family:var(--font-mono);
+    font-size:11px; cursor:pointer; transition:all 0.2s;
+  }
+  .logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+  /* CONTENT */
+  .content { flex:1; padding:24px; max-width:600px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:20px; }
+
+  /* STATUS CARD */
+  .status-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; display:flex; align-items:center; justify-content:space-between;
+  }
+  .status-info .status-label { font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+  .status-info .status-value { font-family:var(--font-head); font-size:20px; font-weight:800; }
+  .status-info .status-value.available { color:var(--green); }
+  .status-info .status-value.assigned { color:var(--red); }
+  .location-info { text-align:right; font-size:12px; color:var(--text-dim); }
+  .location-info strong { display:block; color:var(--text); font-size:13px; margin-bottom:2px; }
+
+  /* CRISIS TASK — FULL SCREEN FEEL */
+  .crisis-task {
+    background:var(--red-dim); border:2px solid var(--red); border-radius:16px;
+    padding:28px; animation:crisis-pulse 2s infinite; display:none;
+  }
+  @keyframes crisis-pulse { 0%,100%{border-color:var(--red)}50%{border-color:rgba(255,45,85,0.4)} }
+  .crisis-task-header {
+    display:flex; align-items:center; gap:12px; margin-bottom:20px;
+  }
+  .crisis-emoji { font-size:36px; }
+  .crisis-task-type { font-family:var(--font-head); font-size:22px; font-weight:800; color:var(--red); }
+  .crisis-task-sub { font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .task-box {
+    background:var(--bg); border:1px solid rgba(255,45,85,0.3); border-radius:12px;
+    padding:20px; margin-bottom:20px;
+  }
+  .task-box-label { font-size:10px; color:var(--red); letter-spacing:2px; text-transform:uppercase; margin-bottom:10px; }
+  .task-text { font-family:var(--font-head); font-size:18px; font-weight:700; line-height:1.4; color:var(--text); }
+  .task-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .task-btn {
+    padding:14px; border-radius:10px; border:none; font-family:var(--font-head);
+    font-size:14px; font-weight:700; cursor:pointer; transition:all 0.2s;
+    letter-spacing:0.5px; text-transform:uppercase;
+  }
+  .task-btn.primary { background:var(--red); color:white; }
+  .task-btn.primary:hover { background:#ff1744; transform:translateY(-1px); }
+  .task-btn.secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+  .task-btn.secondary:hover { border-color:var(--yellow); color:var(--yellow); }
+  .task-btn.success { background:var(--green); color:var(--bg); grid-column:1/-1; }
+  .task-btn.success:hover { opacity:0.9; }
+
+  /* NO TASK */
+  .no-task {
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:40px; text-align:center;
+  }
+  .no-task-icon { font-size:40px; margin-bottom:12px; }
+  .no-task-title { font-family:var(--font-head); font-size:18px; font-weight:700; color:var(--green); margin-bottom:6px; }
+  .no-task-sub { font-size:12px; color:var(--text-dim); }
+
+  /* REPORT FORM */
+  .report-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .section-title { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--text-dim); margin-bottom:14px; font-family:var(--font-head); }
+  .report-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:12px; color:var(--text); font-family:var(--font-mono); font-size:13px;
+    resize:none; margin-bottom:12px; transition:border-color 0.2s;
+  }
+  .report-input:focus { outline:none; border-color:var(--red); }
+  .report-input::placeholder { color:var(--text-dim); }
+  .report-btn {
+    width:100%; padding:12px; border-radius:8px; border:1px solid var(--red);
+    background:var(--red-dim); color:var(--red); font-family:var(--font-mono);
+    font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s;
+    letter-spacing:1px; text-transform:uppercase;
+  }
+  .report-btn:hover { background:var(--red); color:white; }
+
+  /* LOCATION UPDATE */
+  .location-section { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .location-grid { display:grid; grid-template-columns:1fr auto; gap:10px; }
+  .location-select {
+    background:var(--surface2); border:1px solid var(--border); border-radius:8px;
+    padding:11px 12px; color:var(--text); font-family:var(--font-mono); font-size:13px;
+  }
+  .location-select:focus { outline:none; border-color:var(--green); }
+  .location-btn {
+    padding:11px 16px; border-radius:8px; border:1px solid var(--green);
+    background:var(--green-dim); color:var(--green); font-family:var(--font-mono);
+    font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  }
+  .location-btn:hover { background:var(--green); color:var(--bg); }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:24px; right:24px; padding:14px 20px; border-radius:10px; font-size:12px; font-weight:700; z-index:9999; animation:toast-in 0.3s ease; border:1px solid; max-width:350px; }
+  .toast.success { background:var(--green-dim); border-color:var(--green); color:var(--green); }
+  .toast.error { background:var(--red-dim); border-color:var(--red); color:var(--red); }
+  .toast.info { background:rgba(10,132,255,0.12); border-color:#0a84ff; color:#0a84ff; }
+  @keyframes toast-in { from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)} }
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">A</div>
+    <div class="login-title">ARIA</div>
+    <div class="login-sub">Staff Portal — THE_PHOENIX</div>
+
+    <label class="login-label">Staff ID</label>
+    <input class="login-input" id="staffIdInput" type="text" placeholder="e.g. staff_001" />
+
+    <label class="login-label">Your Name</label>
+    <input class="login-input" id="staffNameInput" type="text" placeholder="e.g. Rajesh Kumar" />
+
+    <label class="login-label">Role</label>
+    <select class="login-input" id="staffRoleInput">
+      <option value="security">Security Guard</option>
+      <option value="nurse">Nurse / Medical</option>
+      <option value="housekeeping">Housekeeping</option>
+      <option value="manager">Manager</option>
+      <option value="reception">Reception</option>
+    </select>
+
+    <button class="login-btn" onclick="login()">GO ON DUTY →</button>
+    <div class="demo-hint">Demo: use <span onclick="fillDemo()">staff_001 / Rajesh Kumar</span></div>
+  </div>
+</div>
+
+<!-- MAIN PORTAL -->
+<div class="portal" id="portal">
+  <header>
+    <div class="header-left">
+      <div class="logo-badge">A</div>
+      <div class="logo-text">ARIA Staff</div>
+    </div>
+    <div class="staff-pill">
+      <div class="dot"></div>
+      <span id="headerStaffName">Staff</span>
+    </div>
+    <button class="logout-btn" onclick="logout()">Go Off Duty</button>
+  </header>
+
+  <div class="content">
+
+    <!-- STATUS CARD -->
+    <div class="status-card">
+      <div class="status-info">
+        <div class="status-label">Your Status</div>
+        <div class="status-value available" id="myStatus">Available</div>
+      </div>
+      <div class="location-info">
+        <strong id="myLocation">Unknown</strong>
+        <span>current location</span>
+      </div>
+    </div>
+
+    <!-- ACTIVE TASK (shown during crisis) -->
+    <div class="crisis-task" id="crisisTask">
+      <div class="crisis-task-header">
+        <span class="crisis-emoji" id="taskEmoji">🔥</span>
+        <div>
+          <div class="crisis-task-type" id="taskType">FIRE EMERGENCY</div>
+          <div class="crisis-task-sub" id="taskLocation">Floor 2 — Kitchen</div>
+        </div>
+      </div>
+      <div class="task-box">
+        <div class="task-box-label">⚡ Your Task Right Now</div>
+        <div class="task-text" id="taskText">Loading your assignment...</div>
+      </div>
+      <div class="task-actions">
+        <button class="task-btn primary" onclick="updateTaskStatus('on_my_way')">✅ On My Way</button>
+        <button class="task-btn secondary" onclick="updateTaskStatus('reached')">📍 Reached</button>
+        <button class="task-btn success" onclick="updateTaskStatus('completed')">✔️ Task Completed</button>
+      </div>
+    </div>
+
+    <!-- NO TASK -->
+    <div class="no-task" id="noTask">
+      <div class="no-task-icon">🛡️</div>
+      <div class="no-task-title">Standing By</div>
+      <div class="no-task-sub">No active emergency. ARIA will alert you instantly if needed.<br>Keep your phone nearby and stay on duty.</div>
+    </div>
+
+    <!-- REPORT INCIDENT -->
+    <div class="report-section">
+      <div class="section-title">🚨 Report Incident</div>
+      <textarea class="report-input" id="incidentInput" rows="3" placeholder="Describe what you see... e.g. 'Smoke coming from Room 412, guest needs help'"></textarea>
+      <button class="report-btn" onclick="reportIncident()">⚠️ REPORT TO ARIA</button>
+    </div>
+
+    <!-- UPDATE LOCATION -->
+    <div class="location-section">
+      <div class="section-title">📍 Update My Location</div>
+      <div class="location-grid">
+        <select class="location-select" id="locationSelect">
+          <option value="Reception">Reception (Floor 1)</option>
+          <option value="Floor 1">Floor 1</option>
+          <option value="Floor 2">Floor 2</option>
+          <option value="Floor 3">Floor 3</option>
+          <option value="Floor 4">Floor 4</option>
+          <option value="Floor 5">Floor 5</option>
+          <option value="Floor 6">Floor 6</option>
+          <option value="Floor 7">Floor 7</option>
+          <option value="Floor 8">Floor 8</option>
+          <option value="Parking">Parking</option>
+          <option value="Kitchen">Kitchen</option>
+          <option value="Manager Office">Manager Office</option>
+        </select>
+        <button class="location-btn" onclick="updateLocation()">✓ Check In</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let currentStaff = null;
+let currentCrisisId = null;
+let pollInterval = null;
+
+const icons = {FIRE:'🔥',MEDICAL:'🏥',SECURITY:'🔒',FLOOD:'🌊',POWER_OUTAGE:'⚡',EARTHQUAKE:'🌍',CROWD_PANIC:'👥',OTHER:'⚠️'};
+
+function fillDemo() {
+  document.getElementById('staffIdInput').value = 'staff_001';
+  document.getElementById('staffNameInput').value = 'Rajesh Kumar';
+  document.getElementById('staffRoleInput').value = 'security';
+}
+
+function login() {
+  const id = document.getElementById('staffIdInput').value.trim();
+  const name = document.getElementById('staffNameInput').value.trim();
+  const role = document.getElementById('staffRoleInput').value;
+
+  if (!id || !name) { showToast('Please fill in your Staff ID and Name', 'error'); return; }
+
+  currentStaff = { id, name, role };
+
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('portal').style.display = 'flex';
+  document.getElementById('headerStaffName').textContent = name;
+
+  showToast(`Welcome ${name}. You are now on duty. ARIA is watching.`, 'info');
+  pollCrises();
+  pollInterval = setInterval(pollCrises, 4000);
+}
+
+function logout() {
+  clearInterval(pollInterval);
+  currentStaff = null;
+  currentCrisisId = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('portal').style.display = 'none';
+  document.getElementById('staffIdInput').value = '';
+  document.getElementById('staffNameInput').value = '';
+}
+
+async function pollCrises() {
+  if (!currentStaff) return;
+  try {
+    const res = await fetch(`${API}/crisis/active`);
+    const crises = await res.json();
+
+    // Check if this staff member has an assignment
+    let myAssignment = null;
+    let myCrisisId = null;
+
+    Object.entries(crises).forEach(([id, crisis]) => {
+      const assignments = crisis.staff_assignments || {};
+      Object.values(assignments).forEach(a => {
+        if (a.staff_id === currentStaff.id) {
+          myAssignment = { ...a, crisis_type: crisis.crisis_type, location: crisis.location };
+          myCrisisId = id;
+        }
+      });
+    });
+
+    if (myAssignment) {
+      currentCrisisId = myCrisisId;
+      showCrisisTask(myAssignment);
+    } else {
+      currentCrisisId = null;
+      hideCrisisTask();
+    }
+  } catch(e) {}
+}
+
+function showCrisisTask(assignment) {
+  document.getElementById('crisisTask').style.display = 'block';
+  document.getElementById('noTask').style.display = 'none';
+  document.getElementById('myStatus').textContent = 'ASSIGNED';
+  document.getElementById('myStatus').className = 'status-value assigned';
+  document.getElementById('taskEmoji').textContent = icons[assignment.crisis_type] || '⚠️';
+  document.getElementById('taskType').textContent = `${assignment.crisis_type} EMERGENCY`;
+  document.getElementById('taskLocation').textContent = `📍 ${assignment.location}`;
+  document.getElementById('taskText').textContent = assignment.task || 'Follow ARIA instructions';
+}
+
+function hideCrisisTask() {
+  document.getElementById('crisisTask').style.display = 'none';
+  document.getElementById('noTask').style.display = 'block';
+  document.getElementById('myStatus').textContent = 'Available';
+  document.getElementById('myStatus').className = 'status-value available';
+}
+
+async function updateTaskStatus(status) {
+  if (!currentCrisisId || !currentStaff) return;
+
+  const labels = { on_my_way:'On my way!', reached:'Reached location!', completed:'Task completed!' };
+  showToast(`✅ Status updated: ${labels[status]}`, 'success');
+
+  try {
+    await fetch(`${API}/staff/task-status`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ staff_id: currentStaff.id, crisis_id: currentCrisisId, status })
+    });
+    if (status === 'completed') { hideCrisisTask(); currentCrisisId = null; }
+  } catch(e) {}
+}
+
+async function reportIncident() {
+  const input = document.getElementById('incidentInput');
+  const report = input.value.trim();
+  if (!report) { showToast('Please describe what you see', 'error'); return; }
+
+  try {
+    const res = await fetch(`${API}/crisis/report`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ report, reported_by: currentStaff?.id || 'staff', reporter_location: document.getElementById('locationSelect').value })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ ARIA activated! ${data.staff_assigned} staff assigned in ${data.response_time_seconds}s`, 'success');
+      input.value = '';
+    } else {
+      showToast('Error reporting: ' + (data.detail || 'Unknown'), 'error');
+    }
+  } catch(e) { showToast('Cannot connect to ARIA. Is backend running?', 'error'); }
+}
+
+async function updateLocation() {
+  if (!currentStaff) return;
+  const location = document.getElementById('locationSelect').value;
+  try {
+    await fetch(`${API}/staff/location`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ staff_id: currentStaff.id, location, floor: 1 })
+    });
+    document.getElementById('myLocation').textContent = location;
+    showToast(`📍 Location updated: ${location}`, 'success');
+  } catch(e) { showToast('Could not update location', 'error'); }
+}
+
+function showToast(msg, type='info') {
+  document.querySelector('.toast')?.remove();
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 5000);
+}
+</script>
+</body>
+</html>

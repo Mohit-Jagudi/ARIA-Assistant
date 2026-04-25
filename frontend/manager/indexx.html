@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARIA — Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --border: #2a2a3a;
+    --red: #ff2d55;
+    --red-dim: rgba(255,45,85,0.15);
+    --yellow: #ffd60a;
+    --yellow-dim: rgba(255,214,10,0.12);
+    --green: #30d158;
+    --green-dim: rgba(48,209,88,0.12);
+    --blue: #0a84ff;
+    --blue-dim: rgba(10,132,255,0.12);
+    --text: #f0f0f5;
+    --text-dim: #8888aa;
+    --font-head: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); min-height: 100vh; }
+  body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px); pointer-events: none; z-index: 9999; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 100; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--red); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--font-head); font-weight: 800; font-size: 14px; animation: pulse-red 2s infinite; }
+  @keyframes pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(255,45,85,0.4)}50%{box-shadow:0 0 0 8px rgba(255,45,85,0)} }
+  .logo-text { font-family: var(--font-head); font-weight: 800; font-size: 20px; }
+  .logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+  .header-right { display: flex; align-items: center; gap: 20px; }
+  .status-pill { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 100px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 700; border: 1px solid; }
+  .status-pill.clear { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .status-pill.active { background: var(--red-dim); border-color: var(--red); color: var(--red); animation: blink-border 1s infinite; }
+  @keyframes blink-border { 0%,100%{border-color:var(--red)}50%{border-color:transparent} }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: dot-pulse 1.5s infinite; }
+  @keyframes dot-pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+  .hotel-name { font-size: 12px; color: var(--text-dim); }
+  main { display: grid; grid-template-columns: 1fr 320px; grid-template-rows: auto 1fr; height: calc(100vh - 65px); }
+  .stats-bar { grid-column: 1/-1; display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid var(--border); }
+  .stat { padding: 20px 28px; border-right: 1px solid var(--border); position: relative; overflow: hidden; }
+  .stat::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; }
+  .stat.red::before{background:var(--red)} .stat.yellow::before{background:var(--yellow)} .stat.green::before{background:var(--green)} .stat.blue::before{background:var(--blue)}
+  .stat-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+  .stat-value { font-family: var(--font-head); font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat.red .stat-value{color:var(--red)} .stat.yellow .stat-value{color:var(--yellow)} .stat.green .stat-value{color:var(--green)} .stat.blue .stat-value{color:var(--blue)}
+  .stat-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+  .left-panel { overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid var(--border); }
+  .section-title { font-family: var(--font-head); font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 12px; }
+  .crisis-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; animation: slide-in 0.3s ease; }
+  @keyframes slide-in { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+  .crisis-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: var(--red-dim); border-bottom: 1px solid rgba(255,45,85,0.2); }
+  .crisis-type { display: flex; align-items: center; gap: 10px; }
+  .crisis-icon { font-size: 24px; }
+  .crisis-name { font-family: var(--font-head); font-weight: 800; font-size: 18px; color: var(--red); }
+  .crisis-location { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .severity-badge { padding: 4px 10px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .severity-badge.HIGH,.severity-badge.CRITICAL { background:var(--red-dim); color:var(--red); border:1px solid var(--red); }
+  .severity-badge.MEDIUM { background:var(--yellow-dim); color:var(--yellow); border:1px solid var(--yellow); }
+  .crisis-body { padding: 16px 20px; }
+  .crisis-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+  .meta-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+  .meta-value { font-size: 13px; font-weight: 700; }
+  .guest-safety { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 16px; }
+  .safety-item { padding: 10px; border-radius: 8px; text-align: center; }
+  .safety-item.safe{background:var(--green-dim);border:1px solid rgba(48,209,88,0.3)} .safety-item.help{background:var(--red-dim);border:1px solid rgba(255,45,85,0.3)} .safety-item.unknown{background:var(--yellow-dim);border:1px solid rgba(255,214,10,0.3)}
+  .safety-count { font-family: var(--font-head); font-size: 24px; font-weight: 800; }
+  .safety-item.safe .safety-count{color:var(--green)} .safety-item.help .safety-count{color:var(--red)} .safety-item.unknown .safety-count{color:var(--yellow)}
+  .safety-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 3px; }
+  .quick-actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 16px; }
+  .action-btn { padding: 10px 8px; border-radius: 8px; border: 1px solid var(--red); background: var(--red-dim); color: var(--red); font-family: var(--font-mono); font-size: 11px; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .action-btn:hover { background: var(--red); color: white; transform: translateY(-1px); }
+  .action-btn .btn-icon{font-size:18px} .action-btn .btn-label{font-size:10px}
+  .resolve-btn { width:100%; padding:12px; border-radius:8px; border:1px solid var(--green); background:var(--green-dim); color:var(--green); font-family:var(--font-mono); font-size:12px; font-weight:700; cursor:pointer; letter-spacing:1px; text-transform:uppercase; transition:all 0.2s; }
+  .resolve-btn:hover { background:var(--green); color:var(--bg); }
+  .no-crisis { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:48px; text-align:center; }
+  .no-crisis-icon{font-size:48px;margin-bottom:16px} .no-crisis-title{font-family:var(--font-head);font-size:20px;font-weight:700;color:var(--green);margin-bottom:8px} .no-crisis-sub{font-size:12px;color:var(--text-dim)}
+  .report-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+  .report-input { width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px; color:var(--text); font-family:var(--font-mono); font-size:13px; resize:none; margin-bottom:12px; transition:border-color 0.2s; }
+  .report-input:focus{outline:none;border-color:var(--red)} .report-input::placeholder{color:var(--text-dim)}
+  .report-btn { width:100%; padding:14px; border-radius:8px; border:none; background:var(--red); color:white; font-family:var(--font-head); font-size:14px; font-weight:700; cursor:pointer; letter-spacing:1px; text-transform:uppercase; transition:all 0.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .report-btn:hover{background:#ff1744;transform:translateY(-1px)} .report-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+  .right-panel { overflow-y:auto; display:flex; flex-direction:column; background:var(--surface); }
+  .panel-section { padding:20px; border-bottom:1px solid var(--border); }
+  .staff-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+  .staff-item:last-child{border-bottom:none}
+  .staff-avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:var(--font-head); font-weight:700; font-size:13px; flex-shrink:0; }
+  .staff-avatar.available{background:var(--green-dim);color:var(--green);border:1px solid var(--green)} .staff-avatar.assigned{background:var(--red-dim);color:var(--red);border:1px solid var(--red)} .staff-avatar.offline{background:var(--surface2);color:var(--text-dim);border:1px solid var(--border)}
+  .staff-info{flex:1;min-width:0} .staff-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .staff-role{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px} .staff-task{font-size:10px;color:var(--yellow);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .staff-status{font-size:9px;padding:3px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;flex-shrink:0}
+  .staff-status.available{background:var(--green-dim);color:var(--green)} .staff-status.assigned{background:var(--red-dim);color:var(--red)} .staff-status.offline{background:var(--surface2);color:var(--text-dim)}
+  .timeline-item{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:11px} .timeline-item:last-child{border-bottom:none}
+  .timeline-time{color:var(--text-dim);flex-shrink:0;font-size:10px} .timeline-event{color:var(--text);line-height:1.4}
+  .loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,0.2);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:24px;right:24px;padding:14px 20px;border-radius:10px;font-size:12px;font-weight:700;z-index:9999;animation:toast-in 0.3s ease;border:1px solid;max-width:400px}
+  .toast.success{background:var(--green-dim);border-color:var(--green);color:var(--green)} .toast.error{background:var(--red-dim);border-color:var(--red);color:var(--red)} .toast.info{background:var(--blue-dim);border-color:var(--blue);color:var(--blue)}
+  @keyframes toast-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-icon">A</div>
+    <div><div class="logo-text">ARIA</div><div class="logo-sub">Command Center — THE_PHOENIX</div></div>
+  </div>
+  <div class="header-right">
+    <span class="hotel-name">🏨 Hotel Grand · Ludhiana</span>
+    <div class="status-pill clear" id="systemStatus">
+      <div class="dot"></div><span>All Clear</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="stats-bar">
+    <div class="stat red"><div class="stat-label">Active Crises</div><div class="stat-value" id="statCrises">0</div><div class="stat-sub">ongoing incidents</div></div>
+    <div class="stat green"><div class="stat-label">Guests Safe</div><div class="stat-value" id="statSafe">0</div><div class="stat-sub">confirmed safe</div></div>
+    <div class="stat yellow"><div class="stat-label">Need Help</div><div class="stat-value" id="statHelp">0</div><div class="stat-sub">awaiting response</div></div>
+    <div class="stat blue"><div class="stat-label">Staff On Duty</div><div class="stat-value" id="statStaff">0</div><div class="stat-sub">total registered</div></div>
+  </div>
+
+  <div class="left-panel">
+    <div>
+      <div class="section-title">⚡ Active Crises</div>
+      <div id="crisisContainer">
+        <div class="no-crisis">
+          <div class="no-crisis-icon">🛡️</div>
+          <div class="no-crisis-title">All Clear</div>
+          <div class="no-crisis-sub">No active emergencies. ARIA is monitoring.</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">🚨 Report Emergency</div>
+      <div class="report-form">
+        <textarea class="report-input" id="reportInput" rows="3" placeholder="Describe the emergency... e.g. 'Fire in kitchen on Floor 2, guests panicking'"></textarea>
+        <button class="report-btn" id="reportBtn" onclick="reportCrisis()">
+          <span>🚨</span><span>TRIGGER ARIA RESPONSE</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="panel-section">
+      <div class="section-title">👥 Staff Status</div>
+      <div id="staffList"><div style="color:var(--text-dim);font-size:12px">Loading staff...</div></div>
+    </div>
+    <div class="panel-section">
+      <div class="section-title">📋 Live Timeline</div>
+      <div id="timeline">
+        <div class="timeline-item">
+          <span class="timeline-time">NOW</span>
+          <span class="timeline-event">ARIA Command Center online. Monitoring active.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+let activeCrises = {};
+
+window.onload = () => { loadStaff(); loadCrises(); setInterval(() => { loadCrises(); loadStaff(); }, 5000); };
+
+async function loadStaff() {
+  try {
+    const res = await fetch(`${API}/staff/all`);
+    const data = await res.json();
+    renderStaff(data);
+    document.getElementById('statStaff').textContent = Object.keys(data).length;
+  } catch(e) {}
+}
+
+function renderStaff(staff) {
+  const c = document.getElementById('staffList');
+  if (!staff || !Object.keys(staff).length) { c.innerHTML = '<div style="color:var(--text-dim);font-size:12px">No staff registered</div>'; return; }
+  c.innerHTML = Object.entries(staff).map(([id,s]) => `
+    <div class="staff-item">
+      <div class="staff-avatar ${s.status}">${s.name.charAt(0)}</div>
+      <div class="staff-info">
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-role">${s.role} · ${s.last_location||'Unknown'}</div>
+        ${s.current_assignment?`<div class="staff-task">→ ${s.current_assignment.substring(0,40)}...</div>`:''}
+      </div>
+      <div class="staff-status ${s.status}">${s.status}</div>
+    </div>`).join('');
+}
+
+async function loadCrises() {
+  try {
+    const res = await fetch(`${API}/crisis/active`);
+    const data = await res.json();
+    activeCrises = data || {};
+    renderCrises(activeCrises);
+    updateStats(activeCrises);
+  } catch(e) {}
+}
+
+function updateStats(crises) {
+  const list = Object.values(crises);
+  document.getElementById('statCrises').textContent = list.length;
+  let safe=0, help=0;
+  list.forEach(c => { safe+=c.guests_safe||0; help+=c.guests_need_help||0; });
+  document.getElementById('statSafe').textContent = safe;
+  document.getElementById('statHelp').textContent = help;
+  const pill = document.getElementById('systemStatus');
+  if (list.length > 0) {
+    pill.className = 'status-pill active';
+    pill.innerHTML = '<div class="dot"></div><span>CRISIS ACTIVE</span>';
+  } else {
+    pill.className = 'status-pill clear';
+    pill.innerHTML = '<div class="dot"></div><span>All Clear</span>';
+  }
+}
+
+function renderStaff(staff) {
+  const c = document.getElementById('staffList');
+  if (!staff || !Object.keys(staff).length) { 
+    c.innerHTML = '<div style="color:var(--text-dim);font-size:12px">No staff registered</div>'; 
+    return; 
+  }
+  
+  // Filter only valid staff entries that have a name
+  const validStaff = Object.entries(staff).filter(([id, s]) => s.name);
+  
+  if (!validStaff.length) {
+    c.innerHTML = '<div style="color:var(--text-dim);font-size:12px">No staff registered</div>';
+    return;
+  }
+
+  c.innerHTML = validStaff.map(([id, s]) => `
+    <div class="staff-item">
+      <div class="staff-avatar ${s.status || 'available'}">${s.name.charAt(0)}</div>
+      <div class="staff-info">
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-role">${s.role || 'staff'} · ${s.last_location || 'Unknown'}</div>
+        ${s.current_assignment ? `<div class="staff-task">→ ${s.current_assignment.substring(0,40)}...</div>` : ''}
+      </div>
+      <div class="staff-status ${s.status || 'available'}">${s.status || 'available'}</div>
+    </div>`).join('');
+}
+
+async function reportCrisis() {
+  const input = document.getElementById('reportInput');
+  const btn = document.getElementById('reportBtn');
+  const report = input.value.trim();
+  if (!report) { showToast('Please describe the emergency first', 'error'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading"></div><span>ARIA PROCESSING...</span>';
+  try {
+    const res = await fetch(`${API}/crisis/report`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({report, reported_by:'manager', reporter_location:'Command Center'})
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(`✅ Coordinated in ${data.response_time_seconds}s! ${data.staff_assigned} staff assigned, ${data.guests_alerted} guests alerted.`, 'success');
+      input.value = '';
+      addTimeline(`Crisis reported: ${report.substring(0,50)}...`);
+      loadCrises(); loadStaff();
+    } else {
+      showToast('Error: ' + (data.detail||'Unknown'), 'error');
+    }
+  } catch(e) { showToast('Cannot connect to ARIA backend. Is server running?', 'error'); }
+  finally { btn.disabled=false; btn.innerHTML='<span>🚨</span><span>TRIGGER ARIA RESPONSE</span>'; }
+}
+
+async function resolveCrisis(id) {
+  if (!confirm('Mark this crisis as resolved?')) return;
+  try {
+    await fetch(`${API}/crisis/close`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({crisis_id:id,resolved_by:'manager'})});
+    showToast('Crisis resolved. AI learning report generated.', 'success');
+    addTimeline('Crisis resolved by manager. AI analysis complete.');
+    loadCrises(); loadStaff();
+  } catch(e) { showToast('Error resolving crisis', 'error'); }
+}
+
+function callService(id, number, service) {
+  const cr = activeCrises[id];
+  alert(`📞 ${service}: ${number}\n\nARIA AUTO-BRIEF:\nHotel Grand, MG Road, Ludhiana\nCrisis: ${cr?.crisis_type} at ${cr?.location}\nSeverity: ${cr?.severity}\n\n[Opens phone dialer in production]`);
+  addTimeline(`${service} contacted by manager`);
+}
+
+function addTimeline(event) {
+  const t = document.getElementById('timeline');
+  const now = new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  const item = document.createElement('div');
+  item.className = 'timeline-item';
+  item.innerHTML = `<span class="timeline-time">${now}</span><span class="timeline-event">${event}</span>`;
+  t.insertBefore(item, t.firstChild);
+}
+
+function showToast(msg, type='info') {
+  document.querySelector('.toast')?.remove();
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+</script>
+</body>
+</html>
