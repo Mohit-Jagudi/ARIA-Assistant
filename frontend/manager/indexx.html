@@ -224,29 +224,27 @@ function updateStats(crises) {
 
 function renderStaff(staff) {
   const c = document.getElementById('staffList');
-  if (!staff || !Object.keys(staff).length) { 
-    c.innerHTML = '<div style="color:var(--text-dim);font-size:12px">No staff registered</div>'; 
-    return; 
-  }
-  
-  // Filter only valid staff entries that have a name
-  const validStaff = Object.entries(staff).filter(([id, s]) => s.name);
-  
-  if (!validStaff.length) {
+  if (!staff || !Object.keys(staff).length) {
     c.innerHTML = '<div style="color:var(--text-dim);font-size:12px">No staff registered</div>';
     return;
   }
-
-  c.innerHTML = validStaff.map(([id, s]) => `
-    <div class="staff-item">
-      <div class="staff-avatar ${s.status || 'available'}">${s.name.charAt(0)}</div>
-      <div class="staff-info">
-        <div class="staff-name">${s.name}</div>
-        <div class="staff-role">${s.role || 'staff'} · ${s.last_location || 'Unknown'}</div>
-        ${s.current_assignment ? `<div class="staff-task">→ ${s.current_assignment.substring(0,40)}...</div>` : ''}
-      </div>
-      <div class="staff-status ${s.status || 'available'}">${s.status || 'available'}</div>
-    </div>`).join('');
+  c.innerHTML = Object.entries(staff).map(([id,s]) => {
+    const name = s.name || s.staffName || id;
+    const role = s.role || 'Staff';
+    const status = s.status || 'available';
+    const location = s.last_location || s.location || 'Unknown';
+    const initial = name.charAt(0).toUpperCase();
+    return `
+      <div class="staff-item">
+        <div class="staff-avatar ${status}">${initial}</div>
+        <div class="staff-info">
+          <div class="staff-name">${name}</div>
+          <div class="staff-role">${role} · ${location}</div>
+          ${s.current_assignment ? `<div class="staff-task">→ ${s.current_assignment.substring(0,40)}...</div>` : ''}
+        </div>
+        <div class="staff-status ${status}">${status}</div>
+      </div>`;
+  }).join('');
 }
 
 async function reportCrisis() {
